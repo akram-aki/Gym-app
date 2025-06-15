@@ -16,10 +16,10 @@ interface Exercise {
 interface Routine {
   id: string;
   name: string;
+  exercisesString: string;
   exercises: Exercise[];
   createdAt: string;
 }
-
 
 type Screen = "home" | "form" | "workout" | "history";
 
@@ -27,6 +27,7 @@ export const Example = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
 
   // Load routines from storage when component mounts
   useEffect(() => {
@@ -103,6 +104,7 @@ export const Example = () => {
   const handleFormClose = () => {
     console.log("Form closing...");
     setCurrentScreen("home");
+    setEditingRoutine(null);
   };
 
   const handleFormSave = () => {
@@ -125,8 +127,15 @@ export const Example = () => {
     console.log("Workout saved");
   };
 
+  const handleRoutineEdit = (routine: Routine) => {
+    console.log("Editing routine:", routine.name);
+    setEditingRoutine(routine);
+    setCurrentScreen("form");
+  };
+
   const handleNewRoutinePress = () => {
     console.log("New Routine button pressed!");
+    setEditingRoutine(null);
     setCurrentScreen("form");
   };
 
@@ -137,9 +146,14 @@ export const Example = () => {
       if (storedRoutines) {
         const routines = JSON.parse(storedRoutines);
         // Filter out the routine to delete
-        const updatedRoutines = routines.filter((routine: Routine) => routine.id !== routineId);
+        const updatedRoutines = routines.filter(
+          (routine: Routine) => routine.id !== routineId,
+        );
         // Save back to storage
-        await AsyncStorage.setItem("workoutRoutines", JSON.stringify(updatedRoutines));
+        await AsyncStorage.setItem(
+          "workoutRoutines",
+          JSON.stringify(updatedRoutines),
+        );
         // Reload routines to update the UI
         loadRoutines();
         console.log("Routine deleted successfully");
@@ -157,7 +171,11 @@ export const Example = () => {
     switch (currentScreen) {
       case "form":
         return (
-          <NewRoutineForm onClose={handleFormClose} onSave={handleFormSave} />
+          <NewRoutineForm
+            onClose={handleFormClose}
+            onSave={handleFormSave}
+            existingRoutine={editingRoutine ?? undefined}
+          />
         );
 
       case "workout":
@@ -175,7 +193,12 @@ export const Example = () => {
         return null;
 
       case "history":
-        return <WorkoutHistory setCurrentScreen={setCurrentScreen} currentScreen={currentScreen} />;
+        return (
+          <WorkoutHistory
+            setCurrentScreen={setCurrentScreen}
+            currentScreen={currentScreen}
+          />
+        );
 
       case "home":
       default:
@@ -236,8 +259,9 @@ export const Example = () => {
             </View>
 
             {/* Routine List */}
-            <RoutineList 
-              routines={routines} 
+            <RoutineList
+              routines={routines}
+              onEditRoutine={handleRoutineEdit}
               onRoutinePress={handleRoutinePress}
               onDeleteRoutine={handleDeleteRoutine}
             />

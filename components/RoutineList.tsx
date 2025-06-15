@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import RoutineActions from "./RoutineActions";
 
 interface Exercise {
   id: string;
@@ -11,6 +12,7 @@ interface Exercise {
 interface Routine {
   id: string;
   name: string;
+  exercisesString: string;
   exercises: Exercise[];
   createdAt: string;
 }
@@ -19,13 +21,20 @@ interface RoutineListProps {
   routines: Routine[];
   onRoutinePress?: (routine: Routine) => void;
   onDeleteRoutine?: (routineId: string) => void;
+  onEditRoutine?: (routine: Routine) => void;
 }
 
-export const RoutineList: React.FC<RoutineListProps> = ({ 
-  routines, 
-  onRoutinePress, 
-  onDeleteRoutine 
+export const RoutineList: React.FC<RoutineListProps> = ({
+  routines,
+  onRoutinePress,
+  onDeleteRoutine,
+  onEditRoutine,
 }) => {
+  const handleEditPress = (routine: Routine) => {
+    if (onEditRoutine) {
+      onEditRoutine(routine);
+    }
+  };
   const handleDeletePress = (routine: Routine) => {
     Alert.alert(
       "Delete Routine",
@@ -40,7 +49,7 @@ export const RoutineList: React.FC<RoutineListProps> = ({
           style: "destructive",
           onPress: () => onDeleteRoutine?.(routine.id),
         },
-      ]
+      ],
     );
   };
 
@@ -48,7 +57,7 @@ export const RoutineList: React.FC<RoutineListProps> = ({
     return (
       <View className="flex-1 items-center justify-center">
         <Text className="text-gray-400 text-lg text-center">
-          No routines yet.{'\n'}Create your first workout routine!
+          No routines yet.{"\n"}Create your first workout routine!
         </Text>
       </View>
     );
@@ -56,7 +65,7 @@ export const RoutineList: React.FC<RoutineListProps> = ({
 
   return (
     <ScrollView className="flex-1">
-      <Text className="text-white text-xl font-bold mb-4">Your Routines</Text>
+      <Text className="text-white text-xl font-bold mb-4">My Routines</Text>
       {routines.map((routine) => (
         <View key={routine.id} className="bg-gray-800 p-4 rounded-lg mb-3">
           <TouchableOpacity
@@ -64,40 +73,34 @@ export const RoutineList: React.FC<RoutineListProps> = ({
             className="flex-1"
           >
             <View className="flex-row justify-between items-start mb-2">
-              <Text className="text-white font-semibold text-lg flex-1">{routine.name}</Text>
-              <TouchableOpacity
-                onPress={() => handleDeletePress(routine)}
-                className="bg-red-600 px-3 py-1 rounded ml-3"
-              >
-                <Text className="text-white text-sm font-semibold">Delete</Text>
-              </TouchableOpacity>
+              <Text className="text-white font-semibold text-2xl flex-1">
+                {routine.name}
+              </Text>
+              <RoutineActions
+                routine={routine}
+                onEdit={handleEditPress}
+                onDelete={handleDeletePress}
+              />
             </View>
-            
-            <Text className="text-gray-300 text-sm mb-2">
-              {routine.exercises.length} exercise{routine.exercises.length !== 1 ? 's' : ''}
-            </Text>
-            
+
             {/* Show first few exercises */}
-            <View className="flex-row flex-wrap gap-1">
-              {routine.exercises.slice(0, 3).map((exercise, index) => (
-                <Text key={exercise.id} className="text-blue-400 text-sm">
-                  {exercise.name}
-                  {index < Math.min(routine.exercises.length - 1, 2) ? ' • ' : ''}
-                </Text>
-              ))}
-              {routine.exercises.length > 3 && (
-                <Text className="text-gray-400 text-sm">
-                  +{routine.exercises.length - 3} more
-                </Text>
-              )}
+            <View className="flex-row  pl-1 justify-between">
+              <Text className="text-gray-300 font-light  text-lg ">
+                {routine.exercisesString}
+              </Text>
             </View>
-            
-            <Text className="text-gray-500 text-xs mt-2">
-              Created {new Date(routine.createdAt).toLocaleDateString()}
-            </Text>
+
+            <TouchableOpacity
+              onPress={() => onRoutinePress?.(routine)}
+              className="bg-blue-600 py-3 rounded-2xl mt-4"
+            >
+              <Text className="text-white font-semibold text-center text-lg">
+                Start Routine
+              </Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </View>
       ))}
     </ScrollView>
   );
-}; 
+};

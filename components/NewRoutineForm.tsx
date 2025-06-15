@@ -17,9 +17,18 @@ interface Exercise {
   reps?: number;
 }
 
+interface Routine {
+  id: string;
+  name: string;
+  exercisesString: string;
+  exercises: Exercise[];
+  createdAt: string;
+}
+
 interface NewRoutineFormProps {
   onClose: () => void;
   onSave: () => void;
+  existingRoutine?: Routine;
 }
 
 type MuscleGroup =
@@ -168,14 +177,27 @@ const EXERCISES: ExercisesMap = {
   ],
 };
 
-
 export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
   onClose,
   onSave,
+  existingRoutine,
 }) => {
   const [routineName, setRoutineName] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const isEditing = !!existingRoutine;
+
+  // Initialize state from existingRoutine when editing
+  useEffect(() => {
+    if (existingRoutine) {
+      setRoutineName(existingRoutine.name);
+      setSelectedExercises(existingRoutine.exercises);
+    }
+    // We intentionally run only on mount (empty dep array) so that state
+    // doesn't reset while user is typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filter exercises based on search term
   const getFilteredExercises = () => {
@@ -187,8 +209,8 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
     const searchLower = searchTerm.toLowerCase();
 
     Object.entries(EXERCISES).forEach(([group, exercises]) => {
-      const matchingExercises = exercises.filter(exercise =>
-        exercise.toLowerCase().includes(searchLower)
+      const matchingExercises = exercises.filter((exercise) =>
+        exercise.toLowerCase().includes(searchLower),
       );
       if (matchingExercises.length > 0) {
         filtered[group as MuscleGroup] = matchingExercises;
@@ -277,20 +299,41 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
       return;
     }
 
+    // Build a comma-separated list of exercise names to store with the routine
+    const exercisesString =
+      selectedExercises.length > 3
+        ? selectedExercises
+            .slice(0, 3)
+            .map((exo: Exercise) => exo.name)
+            .join(", ") + "..."
+        : selectedExercises.map((exo: Exercise) => exo.name).join(", ");
+
     try {
       const routine = {
-        id: Date.now().toString(),
+        id: isEditing ? existingRoutine!.id : Date.now().toString(),
         name: routineName,
+        exercisesString,
         exercises: selectedExercises,
-        createdAt: new Date().toISOString(),
+        createdAt: isEditing ? existingRoutine!.createdAt : new Date().toISOString(),
       };
 
       // Get existing routines
       const existingRoutines = await AsyncStorage.getItem("workoutRoutines");
-      const routines = existingRoutines ? JSON.parse(existingRoutines) : [];
+      const routines: Routine[] = existingRoutines ? JSON.parse(existingRoutines) : [];
 
-      // Add new routine
-      routines.push(routine);
+      if (isEditing) {
+        // Replace the routine with the same id
+        const index = routines.findIndex((r) => r.id === existingRoutine!.id);
+        if (index !== -1) {
+          routines[index] = routine;
+        } else {
+          // If somehow not found, just push it
+          routines.push(routine);
+        }
+      } else {
+        // Add new routine
+        routines.push(routine);
+      }
 
       // Save back to storage
       await AsyncStorage.setItem("workoutRoutines", JSON.stringify(routines));
@@ -308,7 +351,7 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
   return (
     <View className="flex-1 bg-gray-900 p-4">
       <View className="flex-row justify-between items-center mb-6 mt-8">
-        <Text className="text-white text-2xl font-bold">New Routine</Text>
+        <Text className="text-white text-2xl font-bold">{isEditing ? "Edit Routine" : "New Routine"}</Text>
         <TouchableOpacity
           onPress={() => {
             setSearchTerm("");
@@ -335,7 +378,6 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
           />
         </View>
 
-
         {/* Exercise Selection */}
         {Object.keys(filteredExercises).length === 0 && searchTerm.trim() ? (
           <View className="mb-6 p-4 bg-gray-800 rounded-lg">
@@ -356,7 +398,8 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
                 {group.toUpperCase()}
                 {searchTerm.trim() && (
                   <Text className="text-gray-400 text-sm font-normal">
-                    {" "}({exercises.length} found)
+                    {" "}
+                    ({exercises.length} found)
                   </Text>
                 )}
               </Text>
@@ -430,27 +473,27 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
         )}
       </ScrollView>
 
-        {/* Search Input */}
-        <View className="mb-6">
-          <Text className="text-white text-lg font-semibold mb-2">
-            Search Exercises
-          </Text>
-          <TextInput
-            className="bg-gray-800 text-white p-3 rounded-lg"
-            placeholder="Search for exercises..."
-            placeholderTextColor="#9CA3AF"
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-          />
-          {searchTerm.trim() && (
-            <TouchableOpacity
-              onPress={() => setSearchTerm("")}
-              className="absolute right-3 top-11"
-            >
-              <Text className="text-gray-400 text-lg">✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* Search Input */}
+      <View className="mb-6">
+        <Text className="text-white text-lg font-semibold mb-2">
+          Search Exercises
+        </Text>
+        <TextInput
+          className="bg-gray-800 text-white p-3 rounded-lg"
+          placeholder="Search for exercises..."
+          placeholderTextColor="#9CA3AF"
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+        />
+        {searchTerm.trim() && (
+          <TouchableOpacity
+            onPress={() => setSearchTerm("")}
+            className="absolute right-3 top-11"
+          >
+            <Text className="text-gray-400 text-lg">✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Save Button */}
       <TouchableOpacity
