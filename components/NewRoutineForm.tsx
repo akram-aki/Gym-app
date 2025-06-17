@@ -185,6 +185,12 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
   const [routineName, setRoutineName] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [addedExerciseFeedback, setAddedExerciseFeedback] = useState<
+    string | null
+  >(null);
+  const [customExerciseName, setCustomExerciseName] = useState("");
+  const [isCustomExerciseExpanded, setIsCustomExerciseExpanded] =
+    useState(false);
 
   const isEditing = !!existingRoutine;
 
@@ -263,6 +269,17 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
   }, [routineName, selectedExercises, onClose]);
 
   const addExercise = (exerciseName: string) => {
+    // Check if exercise is already added
+    const isAlreadyAdded = selectedExercises.some(
+      (ex) => ex.name === exerciseName,
+    );
+
+    if (isAlreadyAdded) {
+      setAddedExerciseFeedback(`${exerciseName} is already in your routine!`);
+      setTimeout(() => setAddedExerciseFeedback(null), 2000);
+      return;
+    }
+
     const newExercise: Exercise = {
       id: Date.now().toString(),
       name: exerciseName,
@@ -270,6 +287,10 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
       reps: 10,
     };
     setSelectedExercises([...selectedExercises, newExercise]);
+
+    // Show success feedback
+    setAddedExerciseFeedback(`Added ${exerciseName} to your routine!`);
+    setTimeout(() => setAddedExerciseFeedback(null), 2000);
   };
 
   const removeExercise = (id: string) => {
@@ -286,6 +307,44 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
         ex.id === id ? { ...ex, [field]: value } : ex,
       ),
     );
+  };
+
+  const addCustomExercise = () => {
+    const exerciseName = customExerciseName.trim();
+
+    if (!exerciseName) {
+      setAddedExerciseFeedback("Please enter an exercise name!");
+      setTimeout(() => setAddedExerciseFeedback(null), 2000);
+      return;
+    }
+
+    // Check if exercise is already added
+    const isAlreadyAdded = selectedExercises.some(
+      (ex) => ex.name.toLowerCase() === exerciseName.toLowerCase(),
+    );
+
+    if (isAlreadyAdded) {
+      setAddedExerciseFeedback(`${exerciseName} is already in your routine!`);
+      setTimeout(() => setAddedExerciseFeedback(null), 2000);
+      return;
+    }
+
+    const newExercise: Exercise = {
+      id: Date.now().toString(),
+      name: exerciseName,
+      sets: 3,
+      reps: 10,
+    };
+
+    setSelectedExercises([...selectedExercises, newExercise]);
+    setCustomExerciseName(""); // Clear input after adding
+
+    // Show success feedback
+    setAddedExerciseFeedback(
+      `Added custom exercise "${exerciseName}" to your routine!`,
+    );
+    setIsCustomExerciseExpanded(false);
+    setTimeout(() => setAddedExerciseFeedback(null), 2000);
   };
 
   const saveRoutine = async () => {
@@ -314,12 +373,16 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
         name: routineName,
         exercisesString,
         exercises: selectedExercises,
-        createdAt: isEditing ? existingRoutine!.createdAt : new Date().toISOString(),
+        createdAt: isEditing
+          ? existingRoutine!.createdAt
+          : new Date().toISOString(),
       };
 
       // Get existing routines
       const existingRoutines = await AsyncStorage.getItem("workoutRoutines");
-      const routines: Routine[] = existingRoutines ? JSON.parse(existingRoutines) : [];
+      const routines: Routine[] = existingRoutines
+        ? JSON.parse(existingRoutines)
+        : [];
 
       if (isEditing) {
         // Replace the routine with the same id
@@ -350,8 +413,19 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
 
   return (
     <View className="flex-1 bg-gray-900 p-4">
+      {/* Feedback Toast */}
+      {addedExerciseFeedback && (
+        <View className="absolute top-20 left-4 right-4 bg-green-600 p-3 rounded-lg z-10">
+          <Text className="text-white text-center font-semibold">
+            ✓ {addedExerciseFeedback}
+          </Text>
+        </View>
+      )}
+
       <View className="flex-row justify-between items-center mb-6 mt-8">
-        <Text className="text-white text-2xl font-bold">{isEditing ? "Edit Routine" : "New Routine"}</Text>
+        <Text className="text-white text-2xl font-bold">
+          {isEditing ? "Edit Routine" : "New Routine"}
+        </Text>
         <TouchableOpacity
           onPress={() => {
             setSearchTerm("");
@@ -469,6 +543,55 @@ export const NewRoutineForm: React.FC<NewRoutineFormProps> = ({
                 </View>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Custom Exercise Input */}
+        {!isCustomExerciseExpanded ? (
+          <TouchableOpacity
+            onPress={() => setIsCustomExerciseExpanded(true)}
+            className="mb-6 p-3 bg-gray-800 rounded-lg border border-gray-600"
+          >
+            <Text className="text-gray-300 text-center">
+              Can't find your exercise? Add it yourself! 💪
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View className="mb-6 absolute p-4 bg-gray-800 rounded-lg border border-purple-500">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-white text-lg font-semibold">
+                Add Custom Exercise 💪
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsCustomExerciseExpanded(false);
+                  setCustomExerciseName("");
+                }}
+                className="bg-gray-600 w-6 h-6 rounded-full justify-center items-center"
+              >
+                <Text className="text-white text-xs">✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View className="flex-row gap-3">
+              <TextInput
+                className="flex-1 bg-gray-700 text-white p-3 rounded-lg"
+                placeholder="Enter custom exercise name..."
+                placeholderTextColor="#9CA3AF"
+                value={customExerciseName}
+                onChangeText={setCustomExerciseName}
+                onSubmitEditing={addCustomExercise}
+                autoFocus={true}
+              />
+              <TouchableOpacity
+                onPress={addCustomExercise}
+                className="bg-purple-600 px-4 py-3 rounded-lg justify-center"
+              >
+                <Text className="text-white font-semibold">Add</Text>
+              </TouchableOpacity>
+            </View>
+            <Text className="text-gray-400 text-sm mt-2">
+              Create your own custom exercises for unique movements
+            </Text>
           </View>
         )}
       </ScrollView>
