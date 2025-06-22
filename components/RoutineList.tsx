@@ -65,15 +65,15 @@ export const RoutineList: React.FC<RoutineListProps> = ({
 
   return (
     <ScrollView className="flex-1">
-      <Text className="text-white text-xl font-bold mb-4">My Routines</Text>
+      <Text className="text-white text-lg font-bold mb-4">My Routines</Text>
       {routines.map((routine) => (
         <View key={routine.id} className="bg-gray-800 p-4 rounded-lg mb-3">
           <TouchableOpacity
             onPress={() => onRoutinePress?.(routine)}
             className="flex-1"
           >
-            <View className="flex-row justify-between items-start mb-2">
-              <Text className="text-white font-semibold text-2xl flex-1">
+            <View className="flex-row justify-between items-start mb-3">
+              <Text className="text-white font-semibold text-lg flex-1 pr-2">
                 {routine.name}
               </Text>
               <RoutineActions
@@ -84,17 +84,17 @@ export const RoutineList: React.FC<RoutineListProps> = ({
             </View>
 
             {/* Show first few exercises */}
-            <View className="flex-row  pl-1 justify-between">
-              <Text className="text-gray-300 font-light  text-lg ">
+            <View className="mb-3">
+              <Text className="text-gray-400 text-sm">
                 {routine.exercisesString}
               </Text>
             </View>
 
             <TouchableOpacity
               onPress={() => onRoutinePress?.(routine)}
-              className="bg-blue-600 py-3 rounded-2xl mt-4"
+              className="bg-blue-600 py-2.5 rounded-lg"
             >
-              <Text className="text-white font-semibold text-center text-lg">
+              <Text className="text-white font-medium text-center text-base">
                 Start Routine
               </Text>
             </TouchableOpacity>
